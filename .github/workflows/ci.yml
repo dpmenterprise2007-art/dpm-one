@@ -61,3 +61,13 @@ jobs:
         run: npm audit --audit-level=moderate
       - name: TypeScript and production build
         run: npm run build
+
+  deployment-config:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+      - name: Validate cloud Docker Compose configuration
+        run: |
+          cp .env.example .env
+          docker compose -f docker-compose.yml -f docker-compose.cloud.yml config --quiet
