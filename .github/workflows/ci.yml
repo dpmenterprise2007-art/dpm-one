@@ -30,6 +30,5 @@ jobs:
         env:
           DATABASE_URL: sqlite:///./ci-test.db
           JWT_SECRET_KEY: ci-only-test-secret-do-not-use-in-production
-        env:
           PYTHONPATH: .
         run: python -m pytest -q
