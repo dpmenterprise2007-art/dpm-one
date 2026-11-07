@@ -9,14 +9,10 @@ docker info *> $null
 if ($LASTEXITCODE -ne 0) { throw "Docker Engine is not running. Start Docker Desktop and rerun this script." }
 
 if (-not (Test-Path ".env")) {
-  throw "Missing .env. Copy .env.example to .env, set APP_ENV=production, unique DB/JWT/admin passwords and CLOUDFLARE_TUNNEL_TOKEN, then rerun."
+  throw "Missing .env. Copy .env.office.example to .env, set APP_ENV=production, unique DB/JWT/admin passwords and CLOUDFLARE_TUNNEL_TOKEN, then rerun."
 }
 $envText = Get-Content ".env" -Raw
-foreach ($placeholder in @("CHANGE_DB_PASSWORD","REPLACE_WITH_A_LONG_RANDOM_SECRET","REPLACE_WITH_A_UNIQUE_PASSWORD","CLOUDFLARE_TUNNEL_TOKEN=")) {
-  if ($placeholder -ne "CLOUDFLARE_TUNNEL_TOKEN=" -and $envText.Contains($placeholder)) {
-    throw "Production placeholder detected in .env: $placeholder. Replace it before deployment."
-  }
-}
+if ($envText -match "CHANGE_DB_PASSWORD|REPLACE_WITH_|PASTE_TUNNEL_TOKEN_HERE") { throw "Production placeholder detected in .env. Replace every placeholder before deployment." }
 if ($envText -notmatch "(?m)^APP_ENV=production\s*$") { throw "Set APP_ENV=production in .env." }
 if ($envText -notmatch "(?m)^CLOUDFLARE_TUNNEL_TOKEN=\S+") { throw "Add the named Cloudflare Tunnel token to .env. Do not paste it into chat or GitHub." }
 if ($envText -match "(?m)^JWT_SECRET_KEY=.{0,40}\s*$") { throw "JWT_SECRET_KEY must be a long random secret (at least 64 characters)." }
