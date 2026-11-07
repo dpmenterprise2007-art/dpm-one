@@ -72,3 +72,28 @@ All employee-management endpoints require an administrator bearer token:
 
 Supported roles: `admin`, `manager`, `sales`, `accounts`, `operations`, `staff`.
 The API never returns password hashes. Change temporary passwords through a dedicated password-reset flow before broader staff rollout.
+
+## DPM ONE business workflows now scaffolded
+
+Authenticated APIs currently cover:
+- Employee directory and administrator-managed role/status updates.
+- Customer master records and contact register (including an explicit contact-consent field).
+- CRM lead records and pipeline stage updates.
+- Follow-up scheduling, assignment, and completion.
+- Site visit requests with server-enforced mandatory ₹5,000 base fee + 18% GST (₹5,900 total); the client cannot override the amount. Accounts/admin payment confirmation is required before the visit becomes confirmed.
+- Quotations with BOQ-style line items, HSN/SAC field, quantity, unit, rate, line GST, subtotal, GST total, and total; money is stored in integer paise to avoid floating-point rounding errors.
+- Quotation state workflow: draft → pending approval → approved → sent → accepted/rejected, with manager/admin approval.
+
+These are API foundations, not a finished production ERP. UI screens, full project execution, purchase/inventory/accounting ledgers, PDF invoice generation, e-invoicing/e-way bill integrations, and comprehensive audit event coverage remain to be implemented and tested.
+
+## Legal, security, and corporate governance baseline
+
+Design targets (not a certification or legal-compliance claim):
+- India-first GST data capture: customer legal name, GSTIN, place/state code, HSN/SAC, line-level tax rate, tax totals, and immutable issued-document snapshots must be completed before statutory invoice use.
+- India privacy: define purpose limitation, notice/consent where required, access/correction/erasure request handling, retention schedule, processor/vendor contracts, and breach response aligned to applicable DPDP Act 2023 rules and commencement notifications. Obtain Indian legal/tax review before production.
+- Global privacy readiness where applicable: GDPR/UK GDPR data-subject workflows, lawful basis, international transfer review, and regional retention controls.
+- Security: least-privilege RBAC, MFA, short-lived tokens, rate limiting, password reset, session revocation, TLS, encryption at rest, secrets rotation, vulnerability/dependency scanning, and incident response.
+- Corporate controls: maker-checker approvals, segregation of duties, quote revision history, approval thresholds, immutable audit trail, document numbering, backups, restore drills, disaster recovery, and access reviews.
+- Standards alignment target: ISO/IEC 27001 control mapping and SOC 2 trust-services evidence readiness. DPM ONE is not currently certified or audited against either standard.
+
+Do not use this foundation to issue statutory tax invoices or process sensitive production data until migration strategy, audit coverage, access controls, backup/restore, penetration testing, and professional compliance review are complete.
