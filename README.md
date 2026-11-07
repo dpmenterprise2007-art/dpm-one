@@ -106,7 +106,57 @@ Do not use this foundation to issue statutory tax invoices or process sensitive 
 3. Run `docker compose up -d --build`.
 4. Open `http://OFFICE-SERVER-IP:3000` from the office LAN. API docs are bound to server localhost on port 8000.
 
-### Oracle Cloud production deployment
+
+### Zero-monthly-hosting office deployment (recommended for DPM)
+
+This option runs PostgreSQL, the API, frontend, and Cloudflare Tunnel on the DPM office computer. It removes Oracle/VPS rent; it does not remove electricity, internet, domain renewal, backup media, or the need to keep the office PC powered on.
+
+#### 1. Prepare Cloudflare DNS and hostname
+- Create a free Cloudflare account and add `dpmenterprise.in` as a website/zone.
+- Review the DNS records Cloudflare imports. Preserve and verify all existing email records before changing nameservers: MX, SPF, DKIM, DMARC and any Google Workspace verification TXT records.
+- At GoDaddy, change the domain nameservers to the two nameservers assigned by Cloudflare. Keep the domain registered at GoDaddy; only authoritative DNS is moving.
+- Wait until Cloudflare reports the zone as Active.
+
+#### 2. Create the named tunnel
+- In Cloudflare Dashboard open **Networking → Tunnels → Create Tunnel**.
+- Name it `dpm-office`; choose Docker as the connector environment.
+- Copy the tunnel token privately. Do not paste it into chat, GitHub, or a committed file.
+- Add a **Published application** route: hostname `crm.dpmenterprise.in`, service `http://web:80`. Cloudflare creates the tunnel DNS route.
+- The connector container joins the Compose internal network, so `web:80` is the frontend service address. Do not route the public hostname directly to PostgreSQL or the API.
+
+#### 3. Prepare the office computer
+- Recommended: Windows 11 or a supported Windows 10 build with WSL 2 and Docker Desktop; Linux with Docker Engine + Compose v2 is also supported.
+- With 8 GB RAM, keep the machine dedicated to DPM ONE while serving users. In Docker Desktop, start with a 4 GB memory limit and 2 CPUs; monitor memory and disk usage. This is suitable for a small initial team, not a high-concurrency enterprise workload.
+- Use a wired Ethernet connection, disable sleep/hibernation while plugged in, enable restart after power failure in BIOS if available, and use a UPS if possible.
+- Do not configure router port-forwarding. The Cloudflare Tunnel is outbound-only. Keep Windows Firewall / LAN access limited to trusted office devices.
+
+#### 4. Configure and start
+- Download the private repository onto the office computer (Git clone or ZIP).
+- Copy `.env.office.example` to `.env`.
+- Set unique strong values for `POSTGRES_PASSWORD`, `DATABASE_URL` (same DB password), `JWT_SECRET_KEY` (at least 64 random characters), and `BOOTSTRAP_ADMIN_PASSWORD` (unique, at least 20 characters). Set the correct administrator email.
+- Set `CLOUDFLARE_TUNNEL_TOKEN` to the token from step 2.
+- Never commit or share `.env`; it is ignored by Git.
+- On Windows, open PowerShell in the repository folder and run:
+  `Set-ExecutionPolicy -Scope Process Bypass`
+  then `./office-deploy.ps1`.
+- On Linux, run `chmod +x office-deploy.sh && ./office-deploy.sh`.
+- Check local service at `http://localhost:3000`; after the named route is healthy, check `https://crm.dpmenterprise.in`.
+- Create the first admin once:
+  `docker compose exec api python -m app.bootstrap_admin`.
+  Sign in and change/store credentials securely.
+
+#### 5. Backup and recovery
+- Windows backup: `./scripts/backup-office.ps1`; Linux backup: `./scripts/backup-office.sh`.
+- Schedule daily backups and copy them to a separate encrypted external disk or another trusted location. A backup stored only on the same PC is not disaster recovery.
+- Test a restore before importing live customer or employee data. Monitor free disk space and container health.
+
+#### Operational boundary
+- If the office PC, power, or internet is down, the public CRM is unavailable. This is not a 24/7 cloud SLA.
+- 8 GB RAM is a lean starter host. If concurrent users, files, reports, or background jobs grow, upgrade RAM to 16 GB or move the database/app to a dedicated server.
+- Cloudflare Tunnel is available on all Cloudflare plans. A stable named hostname requires the domain's DNS zone to be active on Cloudflare; temporary Quick Tunnels are not a production substitute.
+- Cloudflare Tunnel provides connectivity, not user authorization. Keep DPM ONE authentication enabled and add Cloudflare Access policies if an additional login gate is required.
+
+### Optional Oracle Cloud production deployment
 - Target hostname: `crm.dpmenterprise.in`.
 - DNS: create GoDaddy A record `crm` pointing to the Oracle VM public IPv4.
 - Oracle network security: allow inbound TCP 80 and 443; keep PostgreSQL 5432 closed. SSH should be restricted to trusted administrator IPs.
