@@ -32,7 +32,7 @@ def client():
     app.dependency_overrides[get_db] = override_get_db
     with TestingSessionLocal() as db:
         db.add(User(
-            email="admin@dpm.test",
+            email="admin@example.com",
             full_name="DPM Test Admin",
             password_hash=hash_password("Test-Only-Password-2026!"),
             role="admin",
@@ -56,7 +56,7 @@ def test_health_is_public(client):
 
 def test_login_returns_bearer_token(client):
     response = client.post("/api/v1/auth/login", json={
-        "email": "admin@dpm.test",
+        "email": "admin@example.com",
         "password": "Test-Only-Password-2026!",
     })
     assert response.status_code == 200
@@ -86,7 +86,7 @@ def test_admin_can_create_and_list_leads(client):
 def test_admin_can_create_employee(client):
     headers = {"Authorization": f"Bearer {admin_token()}"}
     response = client.post("/api/v1/employees", headers=headers, json={
-        "email": "staff@dpm.test",
+        "email": "staff@example.com",
         "full_name": "Test Staff",
         "temporary_password": "Temporary-Password-2026!",
         "role": "sales",
@@ -99,14 +99,14 @@ def test_non_admin_cannot_manage_employees(client):
     from app.models import User
     with TestingSessionLocal() as db:
         db.add(User(
-            email="staff2@dpm.test",
+            email="staff2@example.com",
             full_name="Regular Staff",
             password_hash=hash_password("Test-Only-Password-2026!"),
             role="staff",
             is_active=True,
         ))
         db.commit()
-        staff_id = db.query(User).filter_by(email="staff2@dpm.test").one().id
+        staff_id = db.query(User).filter_by(email="staff2@example.com").one().id
 
     token = create_access_token(staff_id, "staff")
     response = client.get("/api/v1/employees", headers={"Authorization": f"Bearer {token}"})
