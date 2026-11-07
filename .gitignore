@@ -11,3 +11,7 @@ node_modules/
 dist/
 coverage/
 .DS_Store
+
+# Local database backups and generated secrets
+backups/
+.env
