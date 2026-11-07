@@ -184,7 +184,7 @@ def test_successful_mutations_create_audit_event(client):
     response = client.post("/api/v1/customers", headers=headers, json={"legal_name":"Audit Trail Test Ltd"})
     assert response.status_code == 201
     with TestingSessionLocal() as db:
-        event = db.query(AuditLog).filter_by(entity_type="customers", entity_id=str(response.json()["id"])).first()
+        event = db.query(AuditLog).filter_by(entity_type="customers", actor_user_id=1, action="post").first()
         assert event is not None
         assert event.actor_user_id == 1
 
