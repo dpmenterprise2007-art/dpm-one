@@ -265,3 +265,42 @@ def get_quotation_lines(quotation_id: int, db: Session = Depends(get_db)):
     if not db.get(Quotation, quotation_id):
         raise HTTPException(404, "Quotation not found")
     return list(db.scalars(select(QuotationLine).where(QuotationLine.quotation_id == quotation_id).order_by(QuotationLine.id)).all())
+
+class SiteVisitPaymentUpdate(BaseModel):
+    payment_reference: str = Field(min_length=3, max_length=100)
+
+@router.patch("/site-visits/{visit_id}/payment", response_model=SiteVisitOut)
+def confirm_site_visit_payment(visit_id: int, payload: SiteVisitPaymentUpdate, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    if user.role not in {"admin", "accounts"}:
+        raise HTTPException(403, "Accounts or administrator permission required")
+    visit = db.get(SiteVisit, visit_id)
+    if not visit:
+        raise HTTPException(404, "Site visit not found")
+    visit.payment_status = "paid"
+    visit.visit_status = "confirmed"
+    db.commit(); db.refresh(visit)
+    return visit
+
+class QuotationStatusUpdate(BaseModel):
+    status: str = Field(pattern="^(pending_approval|approved|sent|accepted|rejected|cancelled)$")
+
+@router.patch("/quotations/{quotation_id}/status", response_model=QuotationOut)
+def update_quotation_status(quotation_id: int, payload: QuotationStatusUpdate, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    quotation = db.get(Quotation, quotation_id)
+    if not quotation:
+        raise HTTPException(404, "Quotation not found")
+    transitions = {
+        "draft": {"pending_approval", "cancelled"},
+        "pending_approval": {"approved", "rejected", "cancelled"},
+        "approved": {"sent", "cancelled"},
+        "sent": {"accepted", "rejected", "cancelled"},
+        "accepted": set(), "rejected": set(), "cancelled": set(),
+    }
+    if payload.status not in transitions.get(quotation.status, set()):
+        raise HTTPException(409, f"Invalid quotation transition: {quotation.status} -> {payload.status}")
+    if payload.status in {"approved", "rejected"} and user.role not in {"admin", "manager"}:
+        raise HTTPException(403, "Manager or administrator approval required")
+    quotation.status = payload.status
+    db.commit(); db.refresh(quotation)
+    return quotation
+
