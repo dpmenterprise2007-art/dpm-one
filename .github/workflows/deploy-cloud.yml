@@ -1,0 +1,63 @@
+name: DPM ONE Cloud Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: "Type DEPLOY to deploy current main to crm.dpmenterprise.in"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    if: inputs.confirm == 'DEPLOY'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+      - name: Validate deployment secrets
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          VPS_KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+        run: |
+          test -n "$VPS_HOST" && test -n "$VPS_USER" && test -n "$VPS_SSH_KEY" && test -n "$VPS_KNOWN_HOSTS" || {
+            echo "Missing VPS_HOST, VPS_USER, VPS_SSH_KEY or VPS_KNOWN_HOSTS repository secrets."
+            exit 1
+          }
+      - name: Configure SSH
+        env:
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          VPS_KNOWN_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$VPS_SSH_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          printf '%s\n' "$VPS_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+      - name: Package application source
+        run: tar --exclude=.git --exclude=.env --exclude=node_modules --exclude=dist -czf /tmp/dpm-one.tar.gz .
+      - name: Upload source bundle
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+        run: scp -i ~/.ssh/id_ed25519 /tmp/dpm-one.tar.gz "$VPS_USER@$VPS_HOST:/tmp/dpm-one.tar.gz"
+      - name: Deploy with Docker Compose and HTTPS
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+        run: |
+          ssh -i ~/.ssh/id_ed25519 "$VPS_USER@$VPS_HOST" 'set -eu
+            sudo mkdir -p /opt/dpm-one
+            sudo tar -xzf /tmp/dpm-one.tar.gz -C /opt/dpm-one
+            sudo chown -R "$USER":"$USER" /opt/dpm-one
+            cd /opt/dpm-one
+            test -s .env || { echo "Create /opt/dpm-one/.env from .env.production.example before deploying."; exit 1; }
+            docker compose -f docker-compose.yml -f docker-compose.cloud.yml config --quiet
+            docker compose -f docker-compose.yml -f docker-compose.cloud.yml up -d --build --remove-orphans
+            docker compose -f docker-compose.yml -f docker-compose.cloud.yml ps
+          '
