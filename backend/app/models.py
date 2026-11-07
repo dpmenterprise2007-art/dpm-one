@@ -79,6 +79,9 @@ class SiteVisit(Base):
     gst_rate_basis_points: Mapped[int] = mapped_column(Integer, default=1800)
     fee_total: Mapped[int] = mapped_column(Integer, default=5900)
     payment_status: Mapped[str] = mapped_column(String(30), default="pending")
+    payment_reference: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    payment_verified_by: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    payment_verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     visit_status: Mapped[str] = mapped_column(String(30), default="requested")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 
