@@ -12,7 +12,7 @@ type Lead = {
   stage: string; notes?: string | null;
 };
 
-const API = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API = import.meta.env.VITE_API_URL || "";
 
 const nav = [
   { label: "Overview", icon: LayoutDashboard, active: true },
