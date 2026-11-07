@@ -14,6 +14,7 @@ services:
       timeout: 5s
       retries: 10
     networks: [internal]
+
   api:
     build: ./backend
     restart: unless-stopped
@@ -24,8 +25,21 @@ services:
       db:
         condition: service_healthy
     networks: [internal]
+
+  web:
+    build: ./frontend
+    restart: unless-stopped
+    environment:
+      VITE_API_URL: http://localhost:8000
+    ports:
+      - "3000:80"
+    depends_on:
+      - api
+    networks: [internal]
+
 volumes:
   dpmone_pgdata:
+
 networks:
   internal:
     driver: bridge
