@@ -5,7 +5,7 @@ services:
     environment:
       POSTGRES_DB: dpmone
       POSTGRES_USER: dpmone
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-dpmone_dev_only}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
     volumes:
       - dpmone_pgdata:/var/lib/postgresql/data
     healthcheck:
