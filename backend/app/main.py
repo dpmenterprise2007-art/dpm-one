@@ -6,6 +6,7 @@ from . import models
 from .routers.auth import router as auth_router
 from .routers.leads import router as leads_router
 from .routers.employees import router as employees_router
+from .routers.crm import router as crm_router
 
 if settings.app_env == "production" and settings.jwt_secret_key == "DEV_ONLY_CHANGE_THIS_SECRET_BEFORE_DEPLOYMENT":
     raise RuntimeError("Set a strong JWT_SECRET_KEY before production startup.")
@@ -21,3 +22,4 @@ def health():
 app.include_router(auth_router)
 app.include_router(leads_router)
 app.include_router(employees_router)
+app.include_router(crm_router)
