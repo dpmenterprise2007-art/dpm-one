@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import type { FormEvent, ReactNode } from "react";
 import {
   Activity, ArrowDownRight, ArrowUpRight, Bell, BriefcaseBusiness, Building2,
   CalendarDays, ChevronDown, CircleHelp, ClipboardList, FileText, FolderKanban,
@@ -57,7 +58,7 @@ export default function App() {
 
   useEffect(() => { if (token) void load(); }, [token]);
 
-  async function createLead(event: React.FormEvent) {
+  async function createLead(event: FormEvent) {
     event.preventDefault();
     setSaving(true); setError("");
     try {
@@ -124,6 +125,6 @@ export default function App() {
   </div>;
 }
 
-function Metric({title, value, note, icon, tone}: {title:string;value:string;note:string;icon:React.ReactNode;tone:string}) {
+function Metric({title, value, note, icon, tone}: {title:string;value:string;note:string;icon:ReactNode;tone:string}) {
   return <article className="metric-card"><div className="metric-top"><span>{title}</span><div className={`metric-icon ${tone}`}>{icon}</div></div><strong>{value}</strong><div className="metric-note"><span className="neutral-trend"><ArrowDownRight size={13}/></span>{note}</div></article>;
 }
