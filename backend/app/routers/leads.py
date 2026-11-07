@@ -2,10 +2,11 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 from ..database import get_db
+from ..dependencies import get_current_user
 from ..models import Lead
 from ..schemas import LeadCreate, LeadRead, LeadUpdate
 
-router = APIRouter(prefix="/api/v1/leads", tags=["CRM - Leads"])
+router = APIRouter(prefix="/api/v1/leads", tags=["CRM - Leads"], dependencies=[Depends(get_current_user)])
 
 @router.post("", response_model=LeadRead, status_code=status.HTTP_201_CREATED)
 def create_lead(payload: LeadCreate, db: Session = Depends(get_db)):
