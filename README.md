@@ -62,3 +62,13 @@ Before production:
 - Use unique strong database and administrator passwords.
 - Configure HTTPS and a secure reverse proxy.
 - Add database migrations, refresh-token/session revocation, rate limiting, MFA, and formal role-based authorization before production use.
+
+## Employee management API
+
+All employee-management endpoints require an administrator bearer token:
+- `POST /api/v1/employees` — create an employee with a temporary password (minimum 14 characters)
+- `GET /api/v1/employees` — list employees; optional `active=true|false`, `limit`, `offset`
+- `PATCH /api/v1/employees/{employee_id}` — update name, role, or active status
+
+Supported roles: `admin`, `manager`, `sales`, `accounts`, `operations`, `staff`.
+The API never returns password hashes. Change temporary passwords through a dedicated password-reset flow before broader staff rollout.
