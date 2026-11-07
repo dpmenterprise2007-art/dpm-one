@@ -9,6 +9,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: dpm-one-ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   backend-tests:
     runs-on: ubuntu-latest
@@ -32,6 +36,12 @@ jobs:
           JWT_SECRET_KEY: ci-only-test-secret-do-not-use-in-production
           PYTHONPATH: .
         run: python -m pytest -q
+      - name: Verify database migrations
+        env:
+          DATABASE_URL: sqlite:///./migration-test.db
+          JWT_SECRET_KEY: ci-only-test-secret-do-not-use-in-production
+          PYTHONPATH: .
+        run: alembic upgrade head
 
   frontend-build:
     runs-on: ubuntu-latest
@@ -47,7 +57,7 @@ jobs:
           node-version: "22"
       - name: Install dependencies
         run: npm install
-      - name: Dependency security report
-        run: npm audit --json > /tmp/npm-audit.json || true; grep -E '"(name|severity|range|fixAvailable)"' /tmp/npm-audit.json | head -80
+      - name: Audit frontend dependencies
+        run: npm audit --audit-level=moderate
       - name: TypeScript and production build
         run: npm run build
