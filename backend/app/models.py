@@ -109,3 +109,14 @@ class QuotationLine(Base):
     rate_paise: Mapped[int] = mapped_column(Integer)
     gst_rate_basis_points: Mapped[int] = mapped_column(Integer, default=1800)
     line_total_paise: Mapped[int] = mapped_column(Integer)
+
+class AuditLog(Base):
+    __tablename__ = "audit_logs"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    actor_user_id: Mapped[int | None] = mapped_column(Integer, nullable=True, index=True)
+    action: Mapped[str] = mapped_column(String(100), index=True)
+    entity_type: Mapped[str] = mapped_column(String(80), index=True)
+    entity_id: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    occurred_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), index=True)
+    ip_address: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    request_id: Mapped[str | None] = mapped_column(String(80), nullable=True)
