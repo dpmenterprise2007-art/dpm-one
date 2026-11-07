@@ -71,3 +71,5 @@ jobs:
         run: |
           cp .env.example .env
           docker compose -f docker-compose.yml -f docker-compose.cloud.yml config --quiet
+          echo "CLOUDFLARE_TUNNEL_TOKEN=ci-placeholder-token" >> .env
+          docker compose -f docker-compose.yml -f docker-compose.office.yml config --quiet
