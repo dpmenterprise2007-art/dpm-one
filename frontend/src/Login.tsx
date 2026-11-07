@@ -1,4 +1,5 @@
 import { useState } from "react";
+import type { FormEvent } from "react";
 import { ArrowRight, LockKeyhole, ShieldCheck } from "lucide-react";
 
 const API = import.meta.env.VITE_API_URL || "";
@@ -9,7 +10,7 @@ export default function Login({ onLogin }: { onLogin: (token: string) => void })
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
-  async function submit(event: React.FormEvent) {
+  async function submit(event: FormEvent) {
     event.preventDefault();
     setBusy(true);
     setError("");
