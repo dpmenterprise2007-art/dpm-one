@@ -32,6 +32,7 @@ const money = (value: number) => new Intl.NumberFormat("en-IN", {
 
 export default function App() {
   const [leads, setLeads] = useState<Lead[]>([]);
+  const [token, setToken] = useState<string>(() => sessionStorage.getItem("dpm_one_token") || "");
   const [apiState, setApiState] = useState<"checking" | "online" | "offline">("checking");
   const [query, setQuery] = useState("");
   const [showLeadForm, setShowLeadForm] = useState(false);
@@ -44,7 +45,7 @@ export default function App() {
     try {
       const [health, response] = await Promise.all([
         fetch(`${API}/health`),
-        fetch(`${API}/api/v1/leads?limit=100`)
+        fetch(`${API}/api/v1/leads?limit=100`, { headers: { Authorization: `Bearer ${token}` } })
       ]);
       if (!health.ok || !response.ok) throw new Error("API unavailable");
       setLeads(await response.json());
@@ -54,14 +55,14 @@ export default function App() {
     }
   }
 
-  useEffect(() => { void load(); }, []);
+  useEffect(() => { if (token) void load(); }, [token]);
 
   async function createLead(event: React.FormEvent) {
     event.preventDefault();
     setSaving(true); setError("");
     try {
       const response = await fetch(`${API}/api/v1/leads`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
+        method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ ...form, estimated_value: form.estimated_value ? Number(form.estimated_value) : null })
       });
       if (!response.ok) throw new Error("Lead could not be saved. Check required fields and API.");
@@ -77,6 +78,8 @@ export default function App() {
   ), [leads, query]);
   const pipelineValue = leads.reduce((sum, lead) => sum + (lead.estimated_value || 0), 0);
   const activeLeads = leads.filter((lead) => !["won", "lost"].includes(lead.stage.toLowerCase())).length;
+
+  if (!token) return <Login onLogin={(value) => { sessionStorage.setItem("dpm_one_token", value); setToken(value); }} />;
 
   return <div className="app-shell">
     <aside className={`sidebar ${mobileNav ? "sidebar-open" : ""}`}>
