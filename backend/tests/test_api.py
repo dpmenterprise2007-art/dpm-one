@@ -111,3 +111,101 @@ def test_non_admin_cannot_manage_employees(client):
     token = create_access_token(staff_id, "staff")
     response = client.get("/api/v1/employees", headers={"Authorization": f"Bearer {token}"})
     assert response.status_code == 403
+
+def test_customer_and_contact_workflow(client):
+    headers = {"Authorization": f"Bearer {admin_token()}"}
+    customer = client.post("/api/v1/customers", headers=headers, json={
+        "legal_name": "DPM Test Customer Pvt Ltd",
+        "customer_type": "company",
+        "gstin": "27ABCDE1234F1Z5",
+        "phone": "9876543210",
+    })
+    assert customer.status_code == 201
+    customer_id = customer.json()["id"]
+    contact = client.post("/api/v1/contacts", headers=headers, json={
+        "customer_id": customer_id,
+        "full_name": "Procurement Manager",
+        "phone": "9876543211",
+        "consent_to_contact": True,
+    })
+    assert contact.status_code == 201
+    assert contact.json()["customer_id"] == customer_id
+
+def test_site_visit_fee_is_server_enforced(client):
+    headers = {"Authorization": f"Bearer {admin_token()}"}
+    lead = client.post("/api/v1/leads", headers=headers, json={
+        "company_name": "Site Visit Client Ltd",
+        "contact_name": "Site Contact",
+        "phone": "9876543210",
+        "project_type": "Corporate Interior",
+    })
+    assert lead.status_code == 201
+    visit = client.post("/api/v1/site-visits", headers=headers, json={
+        "lead_id": lead.json()["id"],
+        "scheduled_at": "2026-12-01T10:00:00Z",
+        "site_address": "Business Park, Mumbai",
+        "contact_person": "Site Contact",
+        "contact_phone": "9876543210",
+        "fee_basic": 0,
+        "fee_total": 0,
+    })
+    assert visit.status_code == 201
+    assert visit.json()["fee_basic"] == 5000
+    assert visit.json()["gst_rate_basis_points"] == 1800
+    assert visit.json()["fee_total"] == 5900
+    assert visit.json()["payment_status"] == "pending"
+
+def test_quotation_calculates_gst_in_integer_paise(client):
+    headers = {"Authorization": f"Bearer {admin_token()}"}
+    customer = client.post("/api/v1/customers", headers=headers, json={"legal_name":"Quotation Test Pvt Ltd"})
+    assert customer.status_code == 201
+    quotation = client.post("/api/v1/quotations", headers=headers, json={
+        "customer_id": customer.json()["id"],
+        "title": "Office interior BOQ",
+        "lines": [{
+            "description": "Modular workstation",
+            "hsn_sac": "940330",
+            "quantity": "10",
+            "unit": "Nos",
+            "rate_inr": "12500.00",
+            "gst_rate": "18",
+        }],
+    })
+    assert quotation.status_code == 201
+    assert quotation.json()["subtotal_paise"] == 12500000
+    assert quotation.json()["gst_paise"] == 2250000
+    assert quotation.json()["total_paise"] == 14750000
+
+def test_successful_mutations_create_audit_event(client):
+    from app.models import AuditLog
+    headers = {"Authorization": f"Bearer {admin_token()}"}
+    response = client.post("/api/v1/customers", headers=headers, json={"legal_name":"Audit Trail Test Ltd"})
+    assert response.status_code == 201
+    with TestingSessionLocal() as db:
+        event = db.query(AuditLog).filter_by(entity_type="customers", entity_id=str(response.json()["id"])).first()
+        assert event is not None
+        assert event.actor_user_id == 1
+
+def test_accounts_can_record_site_visit_payment_verification(client):
+    headers = {"Authorization": f"Bearer {admin_token()}"}
+    lead = client.post("/api/v1/leads", headers=headers, json={
+        "company_name": "Payment Verification Ltd",
+        "contact_name": "Accounts Contact",
+        "phone": "9876543210",
+    })
+    visit = client.post("/api/v1/site-visits", headers=headers, json={
+        "lead_id": lead.json()["id"],
+        "scheduled_at": "2026-12-02T10:00:00Z",
+        "site_address": "Mumbai Business Park",
+        "contact_person": "Accounts Contact",
+        "contact_phone": "9876543210",
+    })
+    paid = client.patch(f"/api/v1/site-visits/{visit.json()['id']}/payment", headers=headers, json={"payment_reference":"UTR-TEST-123456"})
+    assert paid.status_code == 200
+    assert paid.json()["payment_status"] == "paid"
+    assert paid.json()["visit_status"] == "confirmed"
+    with TestingSessionLocal() as db:
+        stored = db.get(__import__("app.models", fromlist=["SiteVisit"]).SiteVisit, visit.json()["id"])
+        assert stored.payment_reference == "UTR-TEST-123456"
+        assert stored.payment_verified_by == 1
+        assert stored.payment_verified_at is not None
