@@ -5,6 +5,8 @@ class Settings(BaseSettings):
     app_env: str = "development"
     database_url: str = "sqlite:///./dpmone.db"
     cors_origins: str = "http://localhost:3000"
+    jwt_secret_key: str = "DEV_ONLY_CHANGE_THIS_SECRET_BEFORE_DEPLOYMENT"
+    access_token_expire_minutes: int = 30
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
     @property
