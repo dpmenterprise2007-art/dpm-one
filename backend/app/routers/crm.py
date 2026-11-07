@@ -277,6 +277,9 @@ def confirm_site_visit_payment(visit_id: int, payload: SiteVisitPaymentUpdate, d
     if not visit:
         raise HTTPException(404, "Site visit not found")
     visit.payment_status = "paid"
+    visit.payment_reference = payload.payment_reference.strip()
+    visit.payment_verified_by = user.id
+    visit.payment_verified_at = datetime.now(timezone.utc)
     visit.visit_status = "confirmed"
     db.commit(); db.refresh(visit)
     return visit
