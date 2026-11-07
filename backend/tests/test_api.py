@@ -6,6 +6,7 @@ from sqlalchemy.pool import StaticPool
 
 from app.database import Base, get_db
 from app.main import app
+import app.main as main_module
 from app.models import User
 from app.security import hash_password, create_access_token
 
@@ -19,7 +20,7 @@ engine = create_engine(
 TestingSessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
 
 @pytest.fixture()
-def client():
+def client(monkeypatch):
     Base.metadata.create_all(bind=engine)
 
     def override_get_db():
@@ -30,6 +31,7 @@ def client():
             db.close()
 
     app.dependency_overrides[get_db] = override_get_db
+    monkeypatch.setattr(main_module, "SessionLocal", TestingSessionLocal)
     with TestingSessionLocal() as db:
         db.add(User(
             email="admin@example.com",
