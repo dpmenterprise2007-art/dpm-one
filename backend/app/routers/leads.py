@@ -41,7 +41,8 @@ def update_lead(lead_id: int, payload: LeadUpdate, db: Session = Depends(get_db)
     db.refresh(lead)
     return lead
 
-@router.delete("/{lead_id}", status_code=status.HTTP_204_NO_CONTENT)def delete_lead(lead_id: int, db: Session = Depends(get_db)):
+@router.delete("/{lead_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_lead(lead_id: int, db: Session = Depends(get_db)):
     lead = db.get(Lead, lead_id)
     if not lead:
         raise HTTPException(status_code=404, detail="Lead not found")
