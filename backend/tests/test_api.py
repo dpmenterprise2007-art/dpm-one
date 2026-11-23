@@ -211,3 +211,23 @@ def test_accounts_can_record_site_visit_payment_verification(client):
         assert stored.payment_reference == "UTR-TEST-123456"
         assert stored.payment_verified_by == 1
         assert stored.payment_verified_at is not None
+
+
+def test_lead_delete_requires_authentication_and_returns_not_found_after_delete(client):
+    unauthenticated = client.delete("/api/v1/leads/1")
+    assert unauthenticated.status_code == 401
+
+
+    headers = {"Authorization": f"Bearer {admin_token()}"}
+    created = client.post("/api/v1/leads", headers=headers, json={
+        "company_name": "Delete Test Ltd",
+        "contact_name": "Test Contact",
+        "phone": "9876543210",
+    })
+    assert created.status_code == 201
+    lead_id = created.json()["id"]
+
+    deleted = client.delete(f"/api/v1/leads/{lead_id}", headers=headers)
+    assert deleted.status_code == 204
+    assert client.get(f"/api/v1/leads/{lead_id}", headers=headers).status_code == 404
+    assert client.delete(f"/api/v1/leads/{lead_id}", headers=headers).status_code == 404
